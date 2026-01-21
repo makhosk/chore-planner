@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Daily Planner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="container">
+
+    <h1>Daily Planner</h1>
+
+    <form method="POST">
+
+        <div class="card">
+            <h2>Chores Due Today</h2>
+
+            {% if chores %}
+                {% for chore in chores %}
+                    <label>
+                        <input type="checkbox" name="chore" value="{{ chore }}">
+                        {{ chore }}
+                    </label>
+                {% endfor %}
+            {% else %}
+                <p>🎉 All chores done for today!</p>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <h2>Daily Notes</h2>
+
+            <textarea name="notes" rows="5"
+                      placeholder="Notes for today...">{{ notes }}</textarea>
+        </div>
+
+        <div style="text-align:center;">
+            <button type="submit">Save Today</button>
+        </div>
+
+    </form>
+
+    <div style="margin-top: 30px;"></div>
+
+    <div class="card">
+        <h2>Coming Up This Week</h2>
+
+        {% if weekly %}
+            <ul class="weekly-list">
+            {% for chore, due_date in weekly %}
+                <li>
+                    {{ due_date.strftime("%A") }} — {{ chore }}
+                </li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <p>🎉 No chores coming up this week!</p>
+        {% endif %}
+    </div>
+
+</div>
+
+</body>
+</html>
