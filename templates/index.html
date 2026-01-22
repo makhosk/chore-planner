@@ -61,7 +61,7 @@
     <div class="history-section">
   <h2>Past Weeks</h2>
 
-  {% if weekly_history %}
+  {% if True %}
     {% for week_start, data in weekly_history|dictsort(reverse=True) %}
       <div class="history-week">
         <h3>Week of {{ week_start }}</h3>
