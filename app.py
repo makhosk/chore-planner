@@ -1,16 +1,13 @@
 from flask import Flask, render_template, request, redirect
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import json
 import os
 
 app = Flask(__name__)
 
-CHORE_FILE = "chores.json"
+CHORES_FILE = "chores.json"
 NOTES_FILE = "notes.json"
 
-# -------------------------
-# Utility functions
-# -------------------------
 
 def load_json(filename, default):
     if os.path.exists(filename):
@@ -24,110 +21,96 @@ def save_json(filename, data):
         json.dump(data, f, indent=2)
 
 
-def get_week_start(date_obj):
-    return date_obj - timedelta(days=date_obj.weekday())
-
-
-# -------------------------
-# Load data
-# -------------------------
-
-def load_chores():
-    return load_json(CHORE_FILE, {
-        "Vacuum": {"frequency": 7, "last_done": None},
-        "Bathrooms": {"frequency": 7, "last_done": None},
-        "Laundry": {"frequency": 3, "last_done": None}
-    })
-
-
-def load_notes():
-    return load_json(NOTES_FILE, {})
-
-
-# -------------------------
-# Routes
-# -------------------------
-
 @app.route("/", methods=["GET", "POST"])
 def index():
-    chores = load_chores()
-    notes = load_notes()
-    today = datetime.today().strftime("%Y-%m-%d")
+    today = date.today()
+    today_str = today.isoformat()
+    start_of_week = today - timedelta(days=today.weekday())
 
-    # Handle form submission
+    chores_data = load_json(CHORES_FILE, {})
+    notes_data = load_json(NOTES_FILE, {})
+
+    # ---------------- SAVE TODAY ----------------
     if request.method == "POST":
-        completed = request.form.getlist("completed")
-        note = request.form.get("note", "").strip()
+        completed = request.form.getlist("chore")
+        notes = request.form.get("notes", "")
 
         for chore in completed:
-            if chore in chores:
-                chores[chore]["last_done"] = today
+            if chore in chores_data:
+                chores_data[chore]["last_done"] = today_str
 
-        if note:
-            notes[today] = note
+        if notes.strip():
+            notes_data[today_str] = notes
 
-        save_json(CHORE_FILE, chores)
-        save_json(NOTES_FILE, notes)
+        save_json(CHORES_FILE, chores_data)
+        save_json(NOTES_FILE, notes_data)
 
         return redirect("/")
 
-    # -------------------------
-    # Weekly overview (upcoming)
-    # -------------------------
-
+    # ---------------- CHORES DUE TODAY ----------------
+    chores = []
     weekly_overview = []
-    today_date = datetime.strptime(today, "%Y-%m-%d")
 
-    for chore, data in chores.items():
-        last_done = data["last_done"]
-        frequency = data["frequency"]
+    for chore, data in chores_data.items():
+        freq = data.get("frequency", 7)
+        last_done = data.get("last_done")
 
         if last_done:
-            last_date = datetime.strptime(last_done, "%Y-%m-%d")
-            due_date = last_date + timedelta(days=frequency)
+            last_date = datetime.strptime(last_done, "%Y-%m-%d").date()
         else:
-            due_date = today_date
+            last_date = None
 
-        if due_date <= today_date + timedelta(days=7):
-            weekly_overview.append({
-                "chore": chore,
-                "due": due_date.strftime("%Y-%m-%d")
-            })
+        due_date = last_date + timedelta(days=freq) if last_date else today
 
-    # -------------------------
-    # Weekly history (PAST)
-    # -------------------------
+        if due_date <= today:
+            chores.append(chore)
+        elif due_date <= start_of_week + timedelta(days=6):
+            weekly_overview.append((chore, due_date))
 
+    weekly_overview.sort(key=lambda x: x[1])
+
+    # ---------------- WEEKLY HISTORY ----------------
     weekly_history = {}
 
-    for chore, data in chores.items():
-        if data["last_done"]:
-            date_obj = datetime.strptime(data["last_done"], "%Y-%m-%d")
-            week_start = get_week_start(date_obj).strftime("%Y-%m-%d")
+    # Chore history
+    for chore, data in chores_data.items():
+        last_done = data.get("last_done")
+        if not last_done:
+            continue
 
-            weekly_history.setdefault(week_start, {"chores": [], "notes": []})
-            weekly_history[week_start]["chores"].append(chore)
+        done_date = datetime.strptime(last_done, "%Y-%m-%d").date()
+        week_start = done_date - timedelta(days=done_date.weekday())
 
-    for date_str, note in notes.items():
-        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
-        week_start = get_week_start(date_obj).strftime("%Y-%m-%d")
+        if week_start >= start_of_week:
+            continue
 
-        weekly_history.setdefault(week_start, {"chores": [], "notes": []})
-        weekly_history[week_start]["notes"].append(note)
+        key = week_start.isoformat()
+        weekly_history.setdefault(key, {"chores": [], "notes": []})
+        weekly_history[key]["chores"].append(chore)
+
+    # Notes history
+    for note_date, note_text in notes_data.items():
+        note_day = datetime.strptime(note_date, "%Y-%m-%d").date()
+        week_start = note_day - timedelta(days=note_day.weekday())
+
+        if week_start >= start_of_week:
+            continue
+
+        key = week_start.isoformat()
+        weekly_history.setdefault(key, {"chores": [], "notes": []})
+        weekly_history[key]["notes"].append(note_text)
+
+    notes = notes_data.get(today_str, "")
 
     return render_template(
-    "index.html",
-    chores=chores,
-    today=today,
-    weekly=weekly_overview,  
-    weekly_history=weekly_history,
-    notes=notes
-)
+        "index.html",
+        chores=chores,
+        today=today,
+        weekly=weekly_overview,
+        weekly_history=weekly_history,
+        notes=notes
+    )
 
-
-# -------------------------
-# Run app
-# -------------------------
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host="0.0.0.0", port=5000, debug=True)
