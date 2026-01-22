@@ -58,7 +58,40 @@
             <p>🎉 No chores coming up this week!</p>
         {% endif %}
     </div>
+    <div class="history-section">
+  <h2>Past Weeks</h2>
 
+  {% if weekly_history %}
+    {% for week_start, data in weekly_history|dictsort(reverse=True) %}
+      <div class="history-week">
+        <h3>Week of {{ week_start }}</h3>
+
+        <strong>Completed chores:</strong>
+        {% if data.chores %}
+          <ul>
+            {% for chore in data.chores %}
+              <li>{{ chore }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>No chores logged.</p>
+        {% endif %}
+
+        <strong>Notes:</strong>
+        {% if data.notes %}
+          <ul>
+            {% for note in data.notes %}
+              <li>{{ note }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>No notes.</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>No past history yet.</p>
+  {% endif %}
 </div>
 
 </body>
