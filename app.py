@@ -116,13 +116,13 @@ def index():
         weekly_history[week_start]["notes"].append(note)
 
     return render_template(
-        "index.html",
-        chores=chores,
-        today=today,
-        weekly_overview=weekly_overview,
-        weekly_history=weekly_history,
-        notes=notes
-    )
+    "index.html",
+    chores=chores,
+    today=today,
+    weekly=weekly_overview,  
+    weekly_history=weekly_history,
+    notes=notes
+)
 
 
 # -------------------------
