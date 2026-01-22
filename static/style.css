@@ -35,6 +35,15 @@ h3 {
   margin: 12px 0 6px;
 }
 
+/* ---------- Card styling ---------- */
+.card {
+  background: white;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
 /* ---------- Cards / sections ---------- */
 .section,
 .history-section,
